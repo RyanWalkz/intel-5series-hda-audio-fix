@@ -1,0 +1,1 @@
+# intel-5series-hda-audio-fix

@@ -1,0 +1,55 @@
+#!/bin/sh
+
+set -eu
+
+TARGET_VENDOR="0x8086"
+TARGET_DEVICE="0x3b56"
+TARGET_CLASS_PREFIX="0x0403"
+
+find_device() {
+    for dev in /sys/bus/pci/devices/*; do
+        [ -f "$dev/vendor" ] || continue
+        [ -f "$dev/device" ] || continue
+        [ -f "$dev/class" ] || continue
+
+        vendor="$(cat "$dev/vendor")"
+        device="$(cat "$dev/device")"
+        class="$(cat "$dev/class")"
+
+        case "$class" in
+            "$TARGET_CLASS_PREFIX"*)
+                if [ "$vendor" = "$TARGET_VENDOR" ] &&
+                   [ "$device" = "$TARGET_DEVICE" ]; then
+                    basename "$dev"
+                    return 0
+                fi
+                ;;
+        esac
+    done
+
+    return 1
+}
+
+PCI_DEVICE="$(find_device || true)"
+
+if [ -z "$PCI_DEVICE" ]; then
+    echo "Intel HDA controller 8086:3b56 was not found."
+    exit 0
+fi
+
+DEVICE_PATH="/sys/bus/pci/devices/$PCI_DEVICE"
+
+if [ ! -e "$DEVICE_PATH/remove" ]; then
+    echo "PCI remove interface is unavailable for $PCI_DEVICE."
+    exit 1
+fi
+
+echo "Reinitializing Intel HDA controller: $PCI_DEVICE"
+
+echo 1 > "$DEVICE_PATH/remove"
+
+sleep 2
+
+echo 1 > /sys/bus/pci/rescan
+
+echo "PCI rescan completed."

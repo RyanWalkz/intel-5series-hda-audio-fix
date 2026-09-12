@@ -1,0 +1,12 @@
+[Unit]
+Description=Reinitialize Intel 5-Series HDA audio controller
+After=basic.target
+Before=graphical.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/fix-hda-audio
+RemainAfterExit=yes
+
+[Install]
+WantedBy=graphical.target
